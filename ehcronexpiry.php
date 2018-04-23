@@ -36,9 +36,28 @@ function ehCronExpiry_init(){
 	$count = 0;
 	foreach($results as $result) {
 		$count++;
-		$user_info = get_userdata($result->user_id);		
+		$user_info = get_userdata($result->user_id);
+		//INFUSIONSOFT TEST RUN HERE
+		require_once('Infusionsoft/infusionsoft.php');
+		$email = $user_info->user_email;
+		//look up InfusionSoft ID from email
+		$contacts = Infusionsoft_DataService::query(new Infusionsoft_Contact(), array('Email' => $email));
+		if(count($contacts) > 0) {
+			//user exists - add tag
+			$contactId = $contacts[0]->Id;
+			//Infusionsoft_FunnelService::achieveGoal('oq171', 'crontestsequence', $contactId);
+		} else {
+			//user doesn't exist - add user, then add tag
+			$contact = new Infusionsoft_Contact();
+			$contact->FirstName = $user_info->first_name;
+			$contact->LastName = $user_info->last_name;
+			$contact->Email = $email;
+			$contact->save();
+			$contactId = $contact->Id;
+			//Infusionsoft_FunnelService::achieveGoal('oq171', 'crontestsequence', $contactId);
+		}		
 		$renewdate = date('Y-m-d', strtotime('+2 years', strtotime($result->comment_date)));
-		echo "#" . $count . "- " . $user_info->user_email . " passed on " . date('m/d/y',strtotime($result->comment_date)) . " at " . date('h:i a',strtotime($result->comment_date)) . "<br />";
+		echo "#" . $count . " - " . $user_info->user_email . ", " . $user_info->first_name . " " . $user_info->last_name . ", passed on " . date('m/d/y',strtotime($result->comment_date)) . " at " . date('h:i a',strtotime($result->comment_date)) . "<br />";
 	}
 	echo "</p>";
 }
@@ -61,7 +80,6 @@ function ehD_schedule_function() {
 	$results=$wpdb->get_results("SELECT comment_id, user_id, comment_date FROM wp_comments WHERE comment_post_ID = 8942 AND comment_approved LIKE 'complete' AND comment_type LIKE 'sensei_course_status' AND (comment_date <= DATE_SUB(NOW(),INTERVAL 12 MONTH)) AND (comment_date >= DATE_SUB(NOW(),INTERVAL 13 MONTH)) ORDER BY comment_date DESC");
 	
 	// Loop Through and Add them to Infusionsoft and add a tag to them
-	/*
 	foreach($results as $result) {
 		require_once('Infusionsoft/infusionsoft.php');
 		$user_info = get_userdata($result->user_id);
@@ -85,7 +103,6 @@ function ehD_schedule_function() {
 			Infusionsoft_ContactService::addToGroup($contactID, $groupID);
 		}
 	}
-	*/
 }
 
 function ehAddSettingsLink( $links ) {
