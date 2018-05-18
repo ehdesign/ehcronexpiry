@@ -10,17 +10,101 @@ License: GPL2
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 */
 
-register_activation_hook( __FILE__, 'activateFunction' );
-register_deactivation_hook( __FILE__, 'deactivateFunction' );
+//Main courses array
+$courses = array( 
+ array( 
+   "name" => 'ACLS Certification', 
+   "id" => 7422, 
+   "integration" => 'oq171',
+   "campaign" => 'newremindercampaignacls',
+   "years" => '2'
+ ),
+ array( 
+   "name" => 'ACLS Recertification', 
+   "id" => 30857, 
+   "integration" => 'oq171',
+   "campaign" => 'newremindercampaignacls',
+   "years" => '2'
+ ),
+ array( 
+   "name" => 'ACLS For Life', 
+   "id" => 108316, 
+   "integration" => 'oq171',
+   "campaign" => 'newremindercampaignaclsforlife',
+   "years" => '2'
+ ),
+ array( 
+   "name" => 'Bloodborne Pathogens', 
+   "id" => 30418, 
+   "integration" => 'oq171',
+   "campaign" => 'newremindercampaignbbp',
+   "years" => '2'
+ ),
+ array( 
+   "name" => 'BLS Certification', 
+   "id" => 7793, 
+   "integration" => 'oq171',
+   "campaign" => 'newremindercampaignbls',
+   "years" => '2'
+ ),
+ array( 
+   "name" => 'BLS Recertification', 
+   "id" => 31023, 
+   "integration" => 'oq171',
+   "campaign" => 'newremindercampaignbls',
+   "years" => '2'
+ ),
+ array( 
+   "name" => 'BLS For Life', 
+   "id" => 108443, 
+   "integration" => 'oq171',
+   "campaign" => 'newremindercampaigblsforlife',
+   "years" => '2'
+ ),
+ array( 
+   "name" => 'CPR Certification', 
+   "id" => 8942, 
+   "integration" => 'oq171',
+   "campaign" => 'newremindercampaigncpr',
+   "years" => '2'
+ ),
+ array( 
+   "name" => 'CPR For Life', 
+   "id" => 108641, 
+   "integration" => 'oq171',
+   "campaign" => 'newremindercampaigcprforlife',
+   "years" => '2'
+ ),
+ array( 
+   "name" => 'PALS Certification', 
+   "id" => 8855, 
+   "integration" => 'oq171',
+   "campaign" => 'newremindercampaignpals',
+   "years" => '2'
+ ),
+ array( 
+   "name" => 'PALS Recertification', 
+   "id" => 30948, 
+   "integration" => 'oq171',
+   "campaign" => 'newremindercampaignpals',
+   "years" => '2'
+ ),
+ array( 
+   "name" => 'PALS For Life', 
+   "id" => 108566, 
+   "integration" => 'oq171',
+   "campaign" => 'newremindercampaigpalsforlife',
+   "years" => '2'
+ )
+);
 
-add_action('admin_menu', 'ehExpiry_setup_menu');
 
 function ehExpiry_setup_menu(){
 	add_menu_page( 'Cron Expiry', 'Expire to InfusionSoft ', 'manage_options', 'ehCronExpiry_plugin', 'ehCronExpiry_init', 'dashicons-controls-repeat', 999999);
 }
 
 function ehCronExpiry_init(){
-	// this is called when the page loads
+	//Called when plugin page loads
 	echo "<h1>Welcome to the Cron &amp; Find Expiration Page!</h1>";
 	//Time of Next Run
 	$timestamp = wp_next_scheduled('ehD_event'); 
@@ -30,34 +114,25 @@ function ehCronExpiry_init(){
 	echo $dt->format('F j, Y, g:ia');
 	echo ' (Eastern Time)';
 	echo '</p>';
-	echo '<p><strong>The following will be updated at next run:</strong><br />';
-	global $wpdb;	
-	$results=$wpdb->get_results("SELECT comment_id, user_id, comment_date FROM wp_comments WHERE comment_post_ID = 8942 AND comment_approved LIKE 'complete' AND comment_type LIKE 'sensei_course_status' AND (YEAR(comment_date)=YEAR(CURRENT_DATE())-1) AND (DAYOFMONTH(comment_date)=DAYOFMONTH(CURRENT_DATE())) AND (MONTH(comment_date)=MONTH(CURRENT_DATE())+2) ORDER BY comment_date DESC");
-	$count = 0;
-	foreach($results as $result) {
-		$count++;
-		$user_info = get_userdata($result->user_id);
-		//INFUSIONSOFT TEST RUN HERE
-		require_once('Infusionsoft/infusionsoft.php');
-		$email = $user_info->user_email;
-		//look up InfusionSoft ID from email
-		$contacts = Infusionsoft_DataService::query(new Infusionsoft_Contact(), array('Email' => $email));
-		if(count($contacts) > 0) {
-			//user exists - add tag
-			$contactId = $contacts[0]->Id;
-			//Infusionsoft_FunnelService::achieveGoal('oq171', 'crontestsequence', $contactId);
+	
+	//Review of what is going to happen at next CRON run
+	echo '<p><strong>The following will be updated at next run:</strong></p>';
+	global $wpdb;
+	global $courses;	
+	foreach($courses as $course) {
+		echo "<h3>" . $course['name'] . " - API CALL - " . $course['campaign'] . " - " . $course['years'] . " Years</h3>";
+		echo "<p style='margin-left:20px;'>";
+		if ($course['years']=2) {
+			$results=$wpdb->get_results("SELECT comment_id, user_id, comment_date FROM wp_comments WHERE comment_post_ID = " . $course['id'] . " AND comment_approved LIKE 'complete' AND comment_type LIKE 'sensei_course_status' AND (YEAR(comment_date)=YEAR(CURRENT_DATE())-2) AND (DAYOFMONTH(comment_date)=DAYOFMONTH(CURRENT_DATE())) AND (MONTH(comment_date)=MONTH(CURRENT_DATE())+2) ORDER BY comment_date DESC");
 		} else {
-			//user doesn't exist - add user, then add tag
-			$contact = new Infusionsoft_Contact();
-			$contact->FirstName = $user_info->first_name;
-			$contact->LastName = $user_info->last_name;
-			$contact->Email = $email;
-			$contact->save();
-			$contactId = $contact->Id;
-			//Infusionsoft_FunnelService::achieveGoal('oq171', 'crontestsequence', $contactId);
-		}		
-		$renewdate = date('Y-m-d', strtotime('+2 years', strtotime($result->comment_date)));
-		echo "#" . $count . " - " . $user_info->user_email . ", " . $user_info->first_name . " " . $user_info->last_name . ", passed on " . date('m/d/y',strtotime($result->comment_date)) . " at " . date('h:i a',strtotime($result->comment_date)) . "<br />";
+			$results=$wpdb->get_results("SELECT comment_id, user_id, comment_date FROM wp_comments WHERE comment_post_ID = " . $course['id'] . " AND comment_approved LIKE 'complete' AND comment_type LIKE 'sensei_course_status' AND (YEAR(comment_date)=YEAR(CURRENT_DATE())-1) AND (DAYOFMONTH(comment_date)=DAYOFMONTH(CURRENT_DATE())) AND (MONTH(comment_date)=MONTH(CURRENT_DATE())+2) ORDER BY comment_date DESC");
+		}
+	
+	foreach($results as $result) {
+		$user_info = get_userdata($result->user_id);
+		$email = $user_info->user_email;
+		echo $user_info->user_email . ", " . $user_info->first_name . " " . $user_info->last_name . ", passed on " . date('m/d/y',strtotime($result->comment_date)) . " at " . date('h:i a',strtotime($result->comment_date)) . "<br />";
+	}
 	}
 	echo "</p>";
 }
@@ -65,7 +140,8 @@ function ehCronExpiry_init(){
 function activateFunction() {
 	//this is called when the plugin is activated
 	//ADD the cron
-	wp_schedule_event(time(), 'hourly', 'ehD_event');
+	wp_schedule_event(time(), 'daily', 'ehD_event');
+	wp_schedule_event(time(), 'daily', 'ehDTODAY_event');
 }
 
 function deactivateFunction() {
@@ -76,22 +152,24 @@ function deactivateFunction() {
 
 function ehD_schedule_function() {
 	//Find All users with expire two months in past - 1 month window
-	global $wpdb;	
-	$results=$wpdb->get_results("SELECT comment_id, user_id, comment_date FROM wp_comments WHERE comment_post_ID = 8942 AND comment_approved LIKE 'complete' AND comment_type LIKE 'sensei_course_status' AND (comment_date <= DATE_SUB(NOW(),INTERVAL 12 MONTH)) AND (comment_date >= DATE_SUB(NOW(),INTERVAL 13 MONTH)) ORDER BY comment_date DESC");
-	
-	// Loop Through and Add them to Infusionsoft and add a tag to them
+	global $wpdb;
+	global $courses;	
+	foreach($courses as $course) {	
+	if ($course['years']=2) {
+			$results=$wpdb->get_results("SELECT comment_id, user_id, comment_date FROM wp_comments WHERE comment_post_ID = " . $course['id'] . " AND comment_approved LIKE 'complete' AND comment_type LIKE 'sensei_course_status' AND (YEAR(comment_date)=YEAR(CURRENT_DATE())-2) AND (DAYOFMONTH(comment_date)=DAYOFMONTH(CURRENT_DATE())) AND (MONTH(comment_date)=MONTH(CURRENT_DATE())+2) ORDER BY comment_date DESC");
+		} else {
+			$results=$wpdb->get_results("SELECT comment_id, user_id, comment_date FROM wp_comments WHERE comment_post_ID = " . $course['id'] . " AND comment_approved LIKE 'complete' AND comment_type LIKE 'sensei_course_status' AND (YEAR(comment_date)=YEAR(CURRENT_DATE())-1) AND (DAYOFMONTH(comment_date)=DAYOFMONTH(CURRENT_DATE())) AND (MONTH(comment_date)=MONTH(CURRENT_DATE())+2) ORDER BY comment_date DESC");
+		}
 	foreach($results as $result) {
-		require_once('Infusionsoft/infusionsoft.php');
 		$user_info = get_userdata($result->user_id);
 		$email = $user_info->user_email;
-		$groupID = 123;
 		//look up InfusionSoft ID from email
 		require_once('Infusionsoft/infusionsoft.php');
 		$contacts = Infusionsoft_DataService::query(new Infusionsoft_Contact(), array('Email' => $email));
 		if(count($contacts) > 0) {
-			//user exists - add tag
+			//user exists - add to campaign
 			$contactId = $contacts[0]->Id;
-			Infusionsoft_ContactService::addToGroup($contactID, $groupID);
+			//Infusionsoft_FunnelService::achieveGoal('oq171', $course['campaign'], $contactId);
 		} else {
 			//user doesn't exist - add user, then add tag
 			$contact = new Infusionsoft_Contact();
@@ -99,21 +177,75 @@ function ehD_schedule_function() {
 			$contact->LastName = $user_info->last_name;
 			$contact->Email = $email;
 			$contact->save();
+			$contactId = $contact->Id;
+			//Infusionsoft_FunnelService::achieveGoal('oq171', $course['campaign'], $contactId);
+		}		
+	}
+	}
+}
+
+function ehD_daily_pass() {
+	//Find All users who passed TODAY and push to infusionSoft
+	global $wpdb;
+	global $courses;	
+	foreach($courses as $course) {	
+	$results=$wpdb->get_results("SELECT comment_id, user_id, comment_date FROM wp_comments WHERE comment_post_ID = " . $course['id'] . " AND comment_approved LIKE 'complete' AND comment_type LIKE 'sensei_course_status' AND (YEAR(comment_date)=YEAR(CURRENT_DATE())) AND (DAYOFMONTH(comment_date)=DAYOFMONTH(CURRENT_DATE())) AND (MONTH(comment_date)=MONTH(CURRENT_DATE())) ORDER BY comment_date DESC");
+	foreach($results as $result) {
+		$user_info = get_userdata($result->user_id);
+		$email = $user_info->user_email;
+		//look up InfusionSoft ID from email
+		require_once('Infusionsoft/infusionsoft.php');
+		$contacts = Infusionsoft_DataService::query(new Infusionsoft_Contact(), array('Email' => $email));
+		if(count($contacts) > 0) {
+			//user exists - update custom fields
 			$contactId = $contacts[0]->Id;
-			Infusionsoft_ContactService::addToGroup($contactID, $groupID);
-		}
+			$customFields = array(
+				'_field1',
+				'_field2',
+			);
+			$contact = new Infusionsoft_Contact($contactId);
+			$contact->FirstName = $user_info->first_name;
+			$contact->LastName = $user_info->last_name;
+			$contact->Email = $email;
+			$contact->_field1 = date('Y-m-d');
+				$dateString = date('Y-m-d');
+				$t = strtotime($dateString);
+				$t2 = strtotime('+2 years', $t);
+				$d2 = date('Y-m-d', $t2);
+			$contact->_field2 = $d2;
+			//$contact->save();
+		} else {
+			//user doesn't exist - add user, then add tag
+			$contact = new Infusionsoft_Contact();
+			$contact->FirstName = $user_info->first_name;
+			$contact->LastName = $user_info->last_name;
+			$contact->Email = $email;
+			$contact->_field1 = date('Y-m-d');
+				$dateString = date('Y-m-d');
+				$t = strtotime($dateString);
+				$t2 = strtotime('+2 years', $t);
+				$d2 = date('Y-m-d', $t2);
+			$contact->_field2 = $d2;
+
+			//$contact->save();
+		}		
+	}
 	}
 }
 
 function ehAddSettingsLink( $links ) {
-	//add settings link to plugin
+	//add settings link to plugin page
     $settings_link = '<a href="admin.php?page=ehCronExpiry_plugin">' . __( 'Settings' ) . '</a>';
     array_push( $links, $settings_link );
   	return $links;
 }
 
 //Add Filters / Actions / etc.
-add_action('ehD_event', 'ehD_schedule_function');
 $plugin = plugin_basename( __FILE__ );
+add_action('admin_menu', 'ehExpiry_setup_menu');
+add_action('ehD_event', 'ehD_schedule_function');
+add_action('ehDTODAY_event', 'ehD_daily_pass');
 add_filter( "plugin_action_links_$plugin", 'ehAddSettingsLink' );
+register_activation_hook( __FILE__, 'activateFunction' );
+register_deactivation_hook( __FILE__, 'deactivateFunction' );
 ?>
